@@ -1,0 +1,12 @@
+body{font-family:system-ui,Arial,sans-serif;margin:0;padding:0}
+nav{display:flex;gap:12px;padding:12px;background:#0c4a6e}
+nav a{color:#fff;text-decoration:none}
+main{padding:16px}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ddd;padding:8px}
+.messages{list-style:none;padding:8px}
+.messages li{margin:4px 0;padding:8px;border-radius:4px}
+.messages .success{background:#dcfce7}
+.messages .info{background:#e0f2fe}
+.messages .error{background:#fee2e2}
+

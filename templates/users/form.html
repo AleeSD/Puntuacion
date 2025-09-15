@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>
+<form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div>
+        {{ form.email.label_tag }}
+        {{ form.email }}
+    </div>
+    <div>
+        {{ form.name.label_tag }}
+        {{ form.name }}
+    </div>
+    <div>
+        {{ form.team.label_tag }}
+        {{ form.team }}
+    </div>
+    <div>
+        {{ form.rol.label_tag }}
+        {{ form.rol }}
+    </div>
+    <div>
+        {{ form.is_active.label_tag }}
+        {{ form.is_active }}
+    </div>
+    <div>
+        {{ form.password.label_tag }}
+        {{ form.password }}
+    </div>
+    <button type="submit">Guardar</button>
+    <a href="{% url 'users:list' %}">Cancelar</a>
+    </form>
+{% endblock %}
+
+
