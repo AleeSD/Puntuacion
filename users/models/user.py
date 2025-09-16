@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.utils.translation import gettext_lazy as _
+from django.core.validators import EmailValidator
+from django.core.exceptions import ValidationError
 from teams.models import Team
 
 class CustomUserManager(BaseUserManager):
@@ -33,8 +35,10 @@ class User(AbstractUser):
         (USER, 'User'),
     ]
 
-    username = None # Eliminamos el campo username
-    email = models.EmailField(unique=True)
+    username = None
+    first_name = None
+    last_name  = None
+    email = models.EmailField(unique=True, validators=[EmailValidator()])
     name = models.CharField(max_length=100)
     team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True)
     rol = models.CharField(max_length=10, choices=ROLE_CHOICES, default=USER)
@@ -50,9 +54,22 @@ class User(AbstractUser):
     def __str__(self):
         return self.name
     
+    @property
+    def is_admin(self):
+        return self.rol == self.ADMIN
+    
+    def clean(self):
+        """Validación personalizada para evitar que admins tengan equipo"""
+        super().clean()
+        if self.rol == self.ADMIN and self.team:
+            raise ValidationError('Los administradores no deben pertenecer a un equipo')
+    
+    class Meta:
+        # Añadido ordering para consistencia
+        ordering = ['name']
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
-    image_url = models.CharField(max_length=255, blank=True, null=True)
-
+    image_url = models.ImageField(default='profile_images/default.jpeg', blank=True, null=True)
     def __str__(self):
         return f'Perfil de {self.user.name}'

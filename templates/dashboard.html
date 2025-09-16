@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard — Sistema de Puntuación{% endblock %}
+
+{% block content %}
+<section class="grid">
+  <div class="card" style="grid-column:span 4">
+    <div class="body kpi">
+      <div>
+        <div class="trend">Mis puntos</div>
+        <strong>{{ my_points|default:0 }}</strong>
+      </div>
+      <span class="badge">📊 Puntos</span>
+    </div>
+  </div>
+  <div class="card" style="grid-column:span 4">
+    <div class="body kpi">
+      <div>
+        <div class="trend">Mis actividades</div>
+        <strong>{{ my_activities_count|default:0 }}</strong>
+      </div>
+      <span class="badge">🧩 Actividades</span>
+    </div>
+  </div>
+  <div class="card" style="grid-column:span 4">
+    <div class="body kpi">
+      <div>
+        <div class="trend">Usuarios activos</div>
+        <strong>{{ leaderboard|length }}</strong>
+      </div>
+      <span class="badge">👥 Usuarios</span>
+    </div>
+  </div>
+
+  <div class="card" style="grid-column:span 8">
+    <div class="body">
+      <h3>Ranking</h3>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Usuario</th><th>Equipo</th><th>Puntos</th></tr>
+        </thead>
+        <tbody>
+          {% for u in leaderboard %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ u.name }}</td>
+            <td>{{ u.team.name|default:'—' }}</td>
+            <td>{{ u.total_points|default:0 }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4">Sin datos todavía.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="grid-column:span 4">
+    <div class="body">
+      <h3>Actividades recientes</h3>
+      <ul>
+        {% for a in recent_activities %}
+        <li><strong>{{ a.user.name }}</strong> • {{ a.activity_type.name }} • {{ a.created_at|date:'Y-m-d H:i' }}</li>
+        {% empty %}
+        <li>No hay actividades recientes.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+

@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Actividades{% endblock %}
+
+{% block content %}
+<div class="header-row">
+  <h1>Actividades</h1>
+  {% if request.user.is_admin %}
+  <a class="btn primary" href="/activities/create/">+ Nueva actividad</a>
+  {% endif %}
+  </div>
+
+<div class="card" style="grid-column:span 12">
+  <div class="body">
+    <table>
+      <thead>
+        <tr><th>Fecha</th><th>Usuario</th><th>Actividad</th><th>Puntos</th><th>Evidencia</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for a in activities %}
+        <tr>
+          <td>{{ a.date }}</td>
+          <td>{{ a.user.name }}</td>
+          <td>{{ a.activity_type.name }}</td>
+          <td>{{ a.activity_type.points }}</td>
+          <td>{% if a.evidence %}<a href="{{ a.evidence }}" target="_blank">Ver</a>{% else %}-{% endif %}</td>
+          <td>
+            {% if request.user.is_admin %}
+            <a class="btn" href="/activities/update/{{ a.id }}/">Editar</a>
+            <a class="btn danger" href="/activities/delete/{{ a.id }}/">Eliminar</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6">No hay actividades registradas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+

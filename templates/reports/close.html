@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block title %}Cierre quincenal{% endblock %}
+
+{% block content %}
+<div class="card" style="grid-column:span 8">
+  <div class="body">
+    <h3>Cierre quincenal</h3>
+    <p>Periodo: {{ period.startDate }} al {{ period.endDate }}</p>
+    <p>Estado: {% if period.is_closed %}<span class="badge">Cerrado</span>{% else %}<span class="badge">Abierto</span>{% endif %}</p>
+  </div>
+</div>
+{% endblock %}
+
+

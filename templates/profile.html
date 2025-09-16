@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Mi perfil{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h1>Mi perfil</h1>
+  <div class="profile-card">
+    <img class="avatar" src="{{ profile.image_url.url }}" alt="avatar" onerror="this.src='/media/profile_images/default.jpeg'">
+    <div>
+      <div><strong>{{ request.user.name }}</strong></div>
+      <div>{{ request.user.email }}</div>
+      <div>Rol: {{ request.user.get_rol_display }}</div>
+      <div>Equipo: {{ request.user.team.name|default:'—' }}</div>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <label>Actualizar imagen de perfil
+      <input type="file" name="image_url" accept="image/*" />
+    </label>
+    <button class="btn" type="submit">Guardar</button>
+  </form>
+</div>
+{% endblock %}
+
+

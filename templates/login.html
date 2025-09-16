@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="login-screen">
+  <div class="login-card">
+    <h2>🔐 Iniciar Sesión</h2>
+    <form class="login-form" method="post" action="/login/">
+      {% csrf_token %}
+      {% if form.errors %}
+      <div class="error">Credenciales incorrectas. Por favor, inténtelo de nuevo.</div>
+      {% endif %}
+      
+      <input type="email" name="username" placeholder="Correo electrónico" required>
+      <input type="password" name="password" placeholder="Contraseña" required>
+      <button type="submit">Ingresar</button>
+    </form>
+    
+    <div style="margin-top: 20px; text-align: center; color: var(--text-2); font-size: 14px;">
+      ¿Problemas para acceder? Contacta al administrador del sistema.
+    </div>
+  </div>
+</div>
+{% endblock %}

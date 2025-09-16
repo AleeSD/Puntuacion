@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sistema de Puntuación - Reflexo</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root{
+      --bg:#0f1220;        /* fondo principal */
+      --panel:#181b2e;     /* paneles/cards */
+      --muted:#222642;     /* bordes/sutiles */
+      --text:#e8ebff;      /* texto principal */
+      --text-2:#b6bee3;    /* texto secundario */
+      --brand:#6c8cff;     /* acento */
+      --brand-2:#9ad6ff;   /* acento suave */
+      --warn:#f7b500;      /* aviso */
+      --ok:#2ecc71;        /* ok */
+      --err:#ff6b6b;       /* error */
+      --radius:16px;
+      --radius-sm:12px;
+      --shadow:0 8px 24px rgba(0,0,0,.25);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:linear-gradient(180deg,#0e1120 0%,#0a0c16 100%);
+      color:var(--text); font:500 15px/1.5 Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
+    }
+    a{color:inherit; text-decoration:none}
+    .app{display:grid; grid-template-columns:280px 1fr; min-height:100vh}
+    
+    /* Login Screen */
+    .login-screen{display:flex; align-items:center; justify-content:center; min-height:100vh; background:linear-gradient(180deg,#0e1120 0%,#0a0c16 100%)}
+    .login-card{background:linear-gradient(180deg, rgba(24,27,46,.9), rgba(18,20,36,.9)); border:1px solid var(--muted); border-radius:var(--radius); box-shadow:var(--shadow); padding:32px; width:400px; max-width:90vw}
+    .login-card h2{text-align:center; margin-bottom:24px; color:var(--text)}
+    .login-form{display:grid; gap:16px}
+    .login-form input{width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--muted); background:#0d0f1b; color:var(--text); margin-bottom:8px}
+    .login-form button{width:100%; padding:12px; border-radius:12px; border:none; background:linear-gradient(135deg,var(--brand),#b094ff); color:#fff; cursor:pointer; font-weight:600}
+    .login-form button:hover{opacity:0.9}
+    .error{color:var(--err); font-size:14px; text-align:center; margin-top:8px}
+    
+    /* Sidebar */
+    .sidebar{position:sticky; top:0; align-self:start; height:100vh; padding:24px; border-right:1px solid var(--muted); background:rgba(16,19,35,.7); backdrop-filter: blur(10px)}
+    .brand{display:flex; align-items:center; gap:12px; margin-bottom:24px}
+    .logo{width:40px; height:40px; border-radius:12px; background:linear-gradient(135deg,var(--brand),#b094ff); box-shadow:var(--shadow)}
+    .brand h1{font-size:18px; margin:0}
+    .nav{display:flex; flex-direction:column; gap:6px; margin-top:12px}
+    .nav a{padding:12px 14px; border-radius:10px; color:var(--text-2); border:1px solid transparent; display:flex; align-items:center; gap:10px; cursor:pointer}
+    .nav a:hover{background:rgba(108,140,255,.08); color:var(--text)}
+    .nav a.active{background:rgba(108,140,255,.15); border-color:rgba(108,140,255,.35); color:#fff}
+    .nav small{margin-left:auto; padding:2px 8px; border-radius:999px; background:rgba(154,214,255,.12); color:var(--brand-2); font-size:11px}
+    .sidebar .hint{margin-top:18px; color:var(--text-2); font-size:12px; opacity:.8}
+
+    /* Header */
+    .header{display:flex; align-items:center; justify-content:space-between; padding:20px 28px; border-bottom:1px solid var(--muted); position:sticky; top:0; background:rgba(12,14,24,.7); backdrop-filter: blur(10px); z-index:5}
+    .tabs{display:flex; gap:10px; flex-wrap:wrap}
+    .tab{padding:10px 14px; border-radius:999px; border:1px solid var(--muted); color:var(--text-2); cursor:pointer}
+    .tab:hover{border-color:var(--brand); color:#fff}
+    .tab.active{background:rgba(108,140,255,.15); border-color:var(--brand); color:#fff}
+    .user{display:flex; align-items:center; gap:12px}
+    .avatar{width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#ffd39a,#ff9ab9)}
+    .logout-btn{padding:8px 12px; border-radius:8px; border:1px solid var(--muted); background:transparent; color:var(--text-2); cursor:pointer; font-size:12px}
+    .logout-btn:hover{background:rgba(255,107,107,.1); border-color:var(--err); color:var(--err)}
+
+    /* Main */
+    main{padding:28px; display:grid; gap:24px}
+    .grid{display:grid; grid-template-columns:repeat(12,1fr); gap:24px}
+    .card{background:linear-gradient(180deg, rgba(24,27,46,.9), rgba(18,20,36,.9)); border:1px solid var(--muted); border-radius:var(--radius); box-shadow:var(--shadow)}
+    .card h3{margin:0 0 8px; font-size:16px}
+    .card .body{padding:18px}
+    .kpi{display:flex; align-items:center; justify-content:space-between; padding:18px; border-radius:var(--radius); background:radial-gradient(1200px 600px at 0% -20%, rgba(108,140,255,.18), transparent), rgba(24,27,46,.8); border:1px solid var(--muted)}
+    .kpi strong{font-size:28px}
+    .trend{font-size:12px; color:var(--text-2)}
+
+    /* Tables */
+    table{width:100%; border-collapse:separate; border-spacing:0}
+    th,td{padding:12px 14px; font-size:14px}
+    thead th{position:sticky; top:0; z-index:2; background:rgba(24,27,46,.95); text-align:left; color:var(--text-2); border-bottom:1px solid var(--muted)}
+    tbody tr{border-bottom:1px solid rgba(255,255,255,.06)}
+    tbody tr:hover{background:rgba(108,140,255,.06)}
+    .pill{padding:4px 10px; border-radius:999px; font-size:12px; border:1px solid rgba(255,255,255,.12); color:var(--text-2)}
+    .pill.ok{color:#d1ffe7; border-color:rgba(46,204,113,.35); background:rgba(46,204,113,.12)}
+    .pill.warn{color:#fff2cc; border-color:rgba(247,181,0,.35); background:rgba(247,181,0,.12)}
+    .pill.err{color:#ffd6d6; border-color:rgba(255,107,107,.35); background:rgba(255,107,107,.14)}
+
+    /* Forms */
+    .form{display:grid; gap:14px}
+    .row{display:grid; gap:12px; grid-template-columns:repeat(12,1fr)}
+    .col-6{grid-column:span 6}
+    .col-4{grid-column:span 4}
+    .col-3{grid-column:span 3}
+    .col-12{grid-column:span 12}
+    label{display:block; font-size:12px; color:var(--text-2); margin-bottom:6px}
+    input,select,textarea{width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--muted); background:#0d0f1b; color:var(--text)}
+    textarea{min-height:96px; resize:vertical}
+    .btns{display:flex; gap:10px; flex-wrap:wrap}
+    .btn{padding:12px 16px; border-radius:12px; border:1px solid var(--muted); background:#0d0f1b; color:#fff; cursor:pointer; display:inline-flex; gap:8px; align-items:center}
+    .btn.primary{background:linear-gradient(135deg,var(--brand),#b094ff); border-color:transparent}
+    .btn.ghost{background:transparent}
+    .btn.success{background:linear-gradient(135deg,var(--ok),#27ae60); border-color:transparent}
+    .btn.danger{background:linear-gradient(135deg,var(--err),#e74c3c); border-color:transparent}
+
+    /* Sections */
+    .view{display:none}
+    .view.active{display:block}
+
+    /* Badges */
+    .badge{display:inline-flex; gap:8px; align-items:center; padding:8px 12px; border:1px solid var(--muted); border-radius:999px; color:var(--text-2); background:rgba(154,214,255,.08)}
+    .export-btns{display:flex; gap:10px; margin-top:16px}
+    .export-btns .btn{font-size:12px; padding:8px 12px}
+
+    /* Responsive */
+    @media (max-width: 1024px){
+      .app{grid-template-columns:1fr}
+      .sidebar{position:static; height:auto}
+      .grid{grid-template-columns:1fr}
+      .row{grid-template-columns:1fr}
+      .col-6,.col-4,.col-3,.col-12{grid-column:span 12}
+      .header{position:static}
+    }
+  </style>
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <h2>🔐 Iniciar Sesión</h2>
+      <form class="login-form" onsubmit="login(event)">
+        <input type="email" id="email" placeholder="Correo electrónico" required>
+        <input type="password" id="password" placeholder="Contraseña" required>
+        <button type="submit">Ingresar</button>
+        <div id="loginError" class="error" style="display:none">Credenciales incorrectas</div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="mainApp" class="app" style="display:none">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Sistema de Puntuación</h1>
+          <div style="color:var(--text-2); font-size:12px">Reflexo</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="#" onclick="showView('dashboard')" class="nav-link active">🏠 Dashboard</a>
+        <a href="#" onclick="showView('ingresar-puntos')" class="nav-link admin-only">📝 Ingresar Puntos</a>
+        <a href="#" onclick="showView('reportes')" class="nav-link">📊 Reportes</a>
+        <a href="#" onclick="showView('usuarios')" class="nav-link admin-only">👥 Usuarios</a>
+        <a href="#" onclick="showView('equipos')" class="nav-link admin-only">🏢 Equipos</a>
+      </nav>
+      <p class="hint">Sistema de puntuación quincenal</p>
+    </aside>
+
+    <!-- Content -->
+    <section style="display:flex; flex-direction:column; min-width:0">
+      <header class="header">
+        <div class="tabs">
+          <span class="tab active" onclick="setPeriod('diario')">Diario</span>
+          <span class="tab" onclick="setPeriod('semanal')">Semanal</span>
+          <span class="tab" onclick="setPeriod('quincenal')">Quincenal</span>
+        </div>
+        <div class="user">
+          <span id="userInfo" style="color:var(--text-2)">Usuario</span>
+          <div class="avatar" aria-hidden="true"></div>
+          <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
+        </div>
+      </header>
+
+      <main>
+        <!-- DASHBOARD -->
+        <section id="dashboard" class="view active">
+          <div class="grid">
+            <div class="card" style="grid-column:span 4">
+              <div class="body kpi">
+                <div>
+                  <div class="trend">Puntos totales (<span id="periodText">Diario</span>)</div>
+                  <strong id="totalPoints">0</strong>
+                </div>
+                <span class="badge" id="pointsBadge">📊 Puntos</span>
+              </div>
+            </div>
+            <div class="card" style="grid-column:span 4">
+              <div class="body kpi">
+                <div>
+                  <div class="trend">Mi posición</div>
+                  <strong id="userPosition">-</strong>
+                </div>
+                <span class="badge" id="positionBadge">🏆 Ranking</span>
+              </div>
+            </div>
+            <div class="card" style="grid-column:span 4">
+              <div class="body kpi">
+                <div>
+                  <div class="trend">Días restantes</div>
+                  <strong id="daysLeft">15</strong>
+                </div>
+                <span class="badge" id="daysBadge">⏰ Quincena</span>
+              </div>
+            </div>
+
+            <div class="card" style="grid-column:span 8">
+              <div class="body">
+                <h3>Ranking <span id="rankingPeriod">Diario</span></h3>
+                <table id="rankingTable">
+                  <thead>
+                    <tr><th>#</th><th>Nombre</th><th>Equipo</th><th>Puntos</th><th>Actividades</th></tr>
+                  </thead>
+                  <tbody id="rankingBody">
+                    <!-- Se llena dinámicamente -->
+                  </tbody>
+                </table>
+                <div class="export-btns">
+                  <button class="btn success" onclick="exportToExcel('ranking')">📊 Exportar Excel</button>
+                  <button class="btn primary" onclick="exportToPDF('ranking')">📄 Exportar PDF</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="grid-column:span 4">
+              <div class="body">
+                <h3>Mis puntos</h3>
+                <div id="userPoints">
+                  <div style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                      <span>Commit válido:</span>
+                      <strong id="userCommits">0</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                      <span>Sprint Review:</span>
+                      <strong id="userSprints">0</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                      <span>Llegar temprano:</span>
+                      <strong id="userEarly">0</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                      <span>Completar sistema:</span>
+                      <strong id="userSystem">0</strong>
+                    </div>
+                    <hr style="border-color: var(--muted); margin: 12px 0;">
+                    <div style="display: flex; justify-content: space-between; font-size: 18px; color: var(--brand);">
+                      <span>Total:</span>
+                      <strong id="userTotal">0</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- INGRESAR PUNTOS (Solo Admin) -->
+        <section id="ingresar-puntos" class="view">
+          <div class="grid">
+            <div class="card" style="grid-column:span 8">
+              <div class="body">
+                <h3>Ingresar Puntos (Solo Admin)</h3>
+                <form class="form" onsubmit="addPoints(event)">
+                  <div class="row">
+                    <div class="col-6">
+                      <label for="activityType">Tipo de actividad</label>
+                      <select id="activityType" name="activityType" onchange="updatePoints()">
+                        <option value="commit">Commit válido (4 pts)</option>
+                        <option value="sprint">Presentar Sprint Review (4 pts)</option>
+                        <option value="early">Llegar temprano (1 pt)</option>
+                        <option value="system">Completar sistema (16 pts)</option>
+                      </select>
+                    </div>
+                    <div class="col-6">
+                      <label for="userSelect">Usuario</label>
+                      <select id="userSelect" name="userSelect">
+                        <!-- Se llena dinámicamente -->
+                      </select>
+                    </div>
+                    <div class="col-6">
+                      <label for="pointsDate">Fecha</label>
+                      <input id="pointsDate" type="date" required />
+                    </div>
+                    <div class="col-6">
+                      <label for="pointsTime">Hora</label>
+                      <input id="pointsTime" type="time" required />
+                    </div>
+                    <div class="col-12">
+                      <label for="evidence">Evidencia (URL / referencia)</label>
+                      <input id="evidence" placeholder="https://repo/PR/123 o enlace a acta/foto" />
+                    </div>
+                    <div class="col-12">
+                      <label for="notes">Notas</label>
+                      <textarea id="notes" placeholder="Detalle adicional"></textarea>
+                    </div>
+                  </div>
+                  <div class="btns">
+                    <button class="btn primary" type="submit">Agregar Puntos</button>
+                    <button class="btn ghost" type="reset">Limpiar</button>
+                    <span class="badge" id="estimatedPoints">Puntos: 4</span>
+                  </div>
+                </form>
+              </div>
+            </div>
+            <div class="card" style="grid-column:span 4">
+              <div class="body">
+                <h3>Reglas de puntuación</h3>
+                <ul>
+                  <li>Commit válido → <strong>4 pts</strong></li>
+                  <li>Presentar Sprint Review → <strong>4 pts</strong></li>
+                  <li>Llegar temprano → <strong>1 pt</strong></li>
+                  <li>Completar sistema → <strong>16 pts</strong></li>
+                </ul>
+                <p class="trend">* Los puntos se reinician cada quincena</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- REPORTES -->
+        <section id="reportes" class="view">
+          <div class="grid">
+            <div class="card" style="grid-column:span 8">
+              <div class="body">
+                <h3>Historial de Actividades</h3>
+                <table id="historyTable">
+                  <thead>
+                    <tr><th>Fecha</th><th>Usuario</th><th>Equipo</th><th>Actividad</th><th>Puntos</th><th>Evidencia</th></tr>
+                  </thead>
+                  <tbody id="historyBody">
+                    <!-- Se llena dinámicamente -->
+                  </tbody>
+                </table>
+                <div class="export-btns">
+                  <button class="btn success" onclick="exportToExcel('history')">📊 Exportar Excel</button>
+                  <button class="btn primary" onclick="exportToPDF('history')">📄 Exportar PDF</button>
+                </div>
+              </div>
+            </div>
+            <div class="card" style="grid-column:span 4">
+              <div class="body">
+                <h3>Estadísticas</h3>
+                <div id="stats">
+                  <div style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                      <span>Total actividades:</span>
+                      <strong id="totalActivities">0</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                      <span>Puntos totales:</span>
+                      <strong id="totalPointsStats">0</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                      <span>Usuarios activos:</span>
+                      <strong id="activeUsers">0</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                      <span>Promedio diario:</span>
+                      <strong id="dailyAverage">0</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- USUARIOS (Solo Admin) -->
+        <section id="usuarios" class="view">
+          <div class="grid">
+            <div class="card" style="grid-column:span 8">
+              <div class="body">
+                <h3>Gestión de Usuarios</h3>
+                <div class="btns" style="margin-bottom: 16px;">
+                  <button class="btn primary" onclick="showAddUserModal()">➕ Agregar Usuario</button>
+                </div>
+                <table id="usersTable">
+                  <thead>
+                    <tr><th>Nombre</th><th>Email</th><th>Equipo</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr>
+                  </thead>
+                  <tbody id="usersBody">
+                    <!-- Se llena dinámicamente -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card" style="grid-column:span 4">
+              <div class="body">
+                <h3>Agregar/Editar Usuario</h3>
+                <form id="userForm" onsubmit="saveUser(event)">
+                  <input type="hidden" id="userId" />
+                  <div class="form">
+                    <label for="userName">Nombre completo</label>
+                    <input id="userName" required />
+                    
+                    <label for="userEmail">Email</label>
+                    <input id="userEmail" type="email" required />
+                    
+                    <label for="userTeam">Equipo</label>
+                    <select id="userTeam" required>
+                      <!-- Se llena dinámicamente -->
+                    </select>
+                    
+                    <label for="userRole">Rol</label>
+                    <select id="userRole" required>
+                      <option value="user">Usuario</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                    
+                    <div class="btns">
+                      <button class="btn primary" type="submit">Guardar</button>
+                      <button class="btn ghost" type="button" onclick="clearUserForm()">Limpiar</button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- EQUIPOS (Solo Admin) -->
+        <section id="equipos" class="view">
+          <div class="grid">
+            <div class="card" style="grid-column:span 8">
+              <div class="body">
+                <h3>Gestión de Equipos</h3>
+                <div class="btns" style="margin-bottom: 16px;">
+                  <button class="btn primary" onclick="showAddTeamModal()">➕ Agregar Equipo</button>
+                </div>
+                <table id="teamsTable">
+                  <thead>
+                    <tr><th>Nombre</th><th>Descripción</th><th>Miembros</th><th>Puntos Totales</th><th>Acciones</th></tr>
+                  </thead>
+                  <tbody id="teamsBody">
+                    <!-- Se llena dinámicamente -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card" style="grid-column:span 4">
+              <div class="body">
+                <h3>Agregar/Editar Equipo</h3>
+                <form id="teamForm" onsubmit="saveTeam(event)">
+                  <input type="hidden" id="teamId" />
+                  <div class="form">
+                    <label for="teamName">Nombre del equipo</label>
+                    <input id="teamName" required />
+                    
+                    <label for="teamDescription">Descripción</label>
+                    <textarea id="teamDescription"></textarea>
+                    
+                    <div class="btns">
+                      <button class="btn primary" type="submit">Guardar</button>
+                      <button class="btn ghost" type="button" onclick="clearTeamForm()">Limpiar</button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </section>
+  </div>
+
+  <script>
+    // Datos del sistema
+    let currentUser = null;
+    let currentPeriod = 'diario';
+    let users = [
+      { id: 1, name: 'Admin', email: 'correo@gmail.com', password: '123', team: 'Admin', role: 'admin' },
+      { id: 2, name: 'Ana García', email: 'ana@reflexo.com', password: 'user123', team: 'Sala 1', role: 'user' },
+      { id: 3, name: 'Luis Pérez', email: 'luis@reflexo.com', password: 'user123', team: 'Sala 2', role: 'user' },
+      { id: 4, name: 'Sofía López', email: 'sofia@reflexo.com', password: 'user123', team: 'Sala 1', role: 'user' },
+      { id: 5, name: 'Diego Martínez', email: 'diego@reflexo.com', password: 'user123', team: 'Sala 2', role: 'user' }
+    ];
+    
+    let teams = [
+      { id: 1, name: 'Sala 1', description: 'Equipo de desarrollo Sala 1' },
+      { id: 2, name: 'Sala 2', description: 'Equipo de desarrollo Sala 2' },
+      { id: 3, name: 'Admin', description: 'Equipo administrativo' }
+    ];
+    
+    let activities = [
+      { id: 1, userId: 2, team: 'Sala 1', type: 'commit', points: 4, date: '2024-01-15', time: '09:30', evidence: 'PR#123', notes: 'Commit de funcionalidad' },
+      { id: 2, userId: 3, team: 'Sala 2', type: 'sprint', points: 4, date: '2024-01-15', time: '14:00', evidence: 'Acta reunión', notes: 'Presentación Sprint Review' },
+      { id: 3, userId: 4, team: 'Sala 1', type: 'early', points: 1, date: '2024-01-15', time: '08:00', evidence: 'Registro entrada', notes: 'Llegó temprano' },
+      { id: 4, userId: 2, team: 'Sala 1', type: 'system', points: 16, date: '2024-01-14', time: '17:00', evidence: 'Demo sistema', notes: 'Sistema completado' }
+    ];
+
+    // Configuración de puntos
+    const pointValues = {
+      'commit': 4,
+      'sprint': 4,
+      'early': 1,
+      'system': 16
+    };
+
+    const activityNames = {
+      'commit': 'Commit válido',
+      'sprint': 'Presentar Sprint Review',
+      'early': 'Llegar temprano',
+      'system': 'Completar sistema'
+    };
+
+    // Inicialización
+    document.addEventListener('DOMContentLoaded', function() {
+      // Configurar fecha actual
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('pointsDate').value = today;
+      document.getElementById('pointsTime').value = new Date().toTimeString().slice(0, 5);
+      
+      // Cargar datos iniciales
+      loadUsers();
+      loadTeams();
+      updateDashboard();
+    });
+
+    // Sistema de autenticación
+    function login(event) {
+      event.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      const user = users.find(u => u.email === email && u.password === password);
+      
+      if (user) {
+        currentUser = user;
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'grid';
+        document.getElementById('userInfo').textContent = `${user.name} • ${user.role === 'admin' ? 'Admin' : 'Usuario'}`;
+        
+        // Mostrar/ocultar elementos según el rol
+        const adminElements = document.querySelectorAll('.admin-only');
+        adminElements.forEach(el => {
+          el.style.display = user.role === 'admin' ? 'flex' : 'none';
+        });
+        
+        updateDashboard();
+        loadUsers();
+        loadTeams();
+      } else {
+        document.getElementById('loginError').style.display = 'block';
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('mainApp').style.display = 'none';
+      document.getElementById('loginError').style.display = 'none';
+    }
+
+    // Navegación
+    function showView(viewName) {
+      // Ocultar todas las vistas
+      document.querySelectorAll('.view').forEach(view => {
+        view.classList.remove('active');
+      });
+      
+      // Mostrar la vista seleccionada
+      document.getElementById(viewName).classList.add('active');
+      
+      // Actualizar navegación
+      document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      
+      // Actualizar datos según la vista
+      if (viewName === 'dashboard') {
+        updateDashboard();
+      } else if (viewName === 'reportes') {
+        updateReports();
+      } else if (viewName === 'usuarios') {
+        updateUsersTable();
+      } else if (viewName === 'equipos') {
+        updateTeamsTable();
+      }
+    }
+
+    // Períodos de tiempo
+    function setPeriod(period) {
+      currentPeriod = period;
+      
+      // Actualizar tabs
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      
+      // Actualizar texto
+      const periodTexts = {
+        'diario': 'Diario',
+        'semanal': 'Semanal',
+        'quincenal': 'Quincenal'
+      };
+      
+      document.getElementById('periodText').textContent = periodTexts[period];
+      document.getElementById('rankingPeriod').textContent = periodTexts[period];
+      
+      updateDashboard();
+    }
+
+    // Dashboard
+    function updateDashboard() {
+      const userPoints = calculateUserPoints();
+      const ranking = calculateRanking();
+      
+      // Actualizar KPIs
+      document.getElementById('totalPoints').textContent = userPoints.total;
+      document.getElementById('userPosition').textContent = ranking.findIndex(r => r.id === currentUser.id) + 1;
+      
+      // Actualizar días restantes (simulado)
+      const daysLeft = 15 - (new Date().getDate() % 15);
+      document.getElementById('daysLeft').textContent = daysLeft;
+      
+      // Actualizar ranking
+      updateRankingTable(ranking);
+      
+      // Actualizar puntos del usuario
+      document.getElementById('userCommits').textContent = userPoints.commit;
+      document.getElementById('userSprints').textContent = userPoints.sprint;
+      document.getElementById('userEarly').textContent = userPoints.early;
+      document.getElementById('userSystem').textContent = userPoints.system;
+      document.getElementById('userTotal').textContent = userPoints.total;
+    }
+
+    function calculateUserPoints() {
+      const userActivities = activities.filter(a => a.userId === currentUser.id);
+      const points = { commit: 0, sprint: 0, early: 0, system: 0, total: 0 };
+      
+      userActivities.forEach(activity => {
+        points[activity.type] += activity.points;
+        points.total += activity.points;
+      });
+      
+      return points;
+    }
+
+    function calculateRanking() {
+      const userPoints = {};
+      
+      users.forEach(user => {
+        if (user.role === 'user') {
+          const userActivities = activities.filter(a => a.userId === user.id);
+          userPoints[user.id] = {
+            id: user.id,
+            name: user.name,
+            team: user.team,
+            points: userActivities.reduce((sum, a) => sum + a.points, 0),
+            activities: userActivities.length
+          };
+        }
+      });
+      
+      return Object.values(userPoints).sort((a, b) => b.points - a.points);
+    }
+
+    function updateRankingTable(ranking) {
+      const tbody = document.getElementById('rankingBody');
+      tbody.innerHTML = '';
+      
+      ranking.forEach((user, index) => {
+        const row = tbody.insertRow();
+        row.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${user.name}</td>
+          <td>${user.team}</td>
+          <td>${user.points}</td>
+          <td>${user.activities}</td>
+        `;
+      });
+    }
+
+    // Ingresar puntos (solo admin)
+    function addPoints(event) {
+      event.preventDefault();
+      
+      if (currentUser.role !== 'admin') {
+        alert('Solo los administradores pueden ingresar puntos');
+        return;
+      }
+      
+      const activityType = document.getElementById('activityType').value;
+      const userId = parseInt(document.getElementById('userSelect').value);
+      const date = document.getElementById('pointsDate').value;
+      const time = document.getElementById('pointsTime').value;
+      const evidence = document.getElementById('evidence').value;
+      const notes = document.getElementById('notes').value;
+      
+      const newActivity = {
+        id: activities.length + 1,
+        userId: userId,
+        team: users.find(u => u.id === userId).team,
+        type: activityType,
+        points: pointValues[activityType],
+        date: date,
+        time: time,
+        evidence: evidence,
+        notes: notes
+      };
+      
+      activities.push(newActivity);
+      updateDashboard();
+      
+      // Limpiar formulario
+      document.getElementById('addPointsForm').reset();
+      document.getElementById('pointsDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('pointsTime').value = new Date().toTimeString().slice(0, 5);
+      
+      alert('Puntos agregados correctamente');
+    }
+
+    function updatePoints() {
+      const activityType = document.getElementById('activityType').value;
+      document.getElementById('estimatedPoints').textContent = `Puntos: ${pointValues[activityType]}`;
+    }
+
+    // Cargar usuarios en select
+    function loadUsers() {
+      const userSelect = document.getElementById('userSelect');
+      const userTeam = document.getElementById('userTeam');
+      
+      userSelect.innerHTML = '';
+      userTeam.innerHTML = '';
+      
+      users.forEach(user => {
+        if (user.role === 'user') {
+          const option = document.createElement('option');
+          option.value = user.id;
+          option.textContent = user.name;
+          userSelect.appendChild(option);
+        }
+        
+        const teamOption = document.createElement('option');
+        teamOption.value = user.team;
+        teamOption.textContent = user.team;
+        if (!Array.from(userTeam.options).some(opt => opt.value === user.team)) {
+          userTeam.appendChild(teamOption);
+        }
+      });
+    }
+
+    function loadTeams() {
+      const teamSelect = document.getElementById('userTeam');
+      teamSelect.innerHTML = '';
+      
+      teams.forEach(team => {
+        const option = document.createElement('option');
+        option.value = team.name;
+        option.textContent = team.name;
+        teamSelect.appendChild(option);
+      });
+    }
+
+    // Reportes
+    function updateReports() {
+      updateHistoryTable();
+      updateStats();
+    }
+
+    function updateHistoryTable() {
+      const tbody = document.getElementById('historyBody');
+      tbody.innerHTML = '';
+      
+      activities.forEach(activity => {
+        const user = users.find(u => u.id === activity.userId);
+        const row = tbody.insertRow();
+        row.innerHTML = `
+          <td>${activity.date} ${activity.time}</td>
+          <td>${user.name}</td>
+          <td>${activity.team}</td>
+          <td>${activityNames[activity.type]}</td>
+          <td>+${activity.points}</td>
+          <td>${activity.evidence ? `<a href="${activity.evidence}" target="_blank">Ver</a>` : '-'}</td>
+        `;
+      });
+    }
+
+    function updateStats() {
+      document.getElementById('totalActivities').textContent = activities.length;
+      document.getElementById('totalPointsStats').textContent = activities.reduce((sum, a) => sum + a.points, 0);
+      document.getElementById('activeUsers').textContent = users.filter(u => u.role === 'user').length;
+      document.getElementById('dailyAverage').textContent = Math.round(activities.reduce((sum, a) => sum + a.points, 0) / 15);
+    }
+
+    // Gestión de usuarios
+    function updateUsersTable() {
+      const tbody = document.getElementById('usersBody');
+      tbody.innerHTML = '';
+      
+      users.forEach(user => {
+        const row = tbody.insertRow();
+        row.innerHTML = `
+          <td>${user.name}</td>
+          <td>${user.email}</td>
+          <td>${user.team}</td>
+          <td>${user.role === 'admin' ? 'Admin' : 'Usuario'}</td>
+          <td><span class="pill ok">Activo</span></td>
+          <td>
+            <button class="btn ghost" onclick="editUser(${user.id})">Editar</button>
+            <button class="btn danger" onclick="deleteUser(${user.id})">Eliminar</button>
+          </td>
+        `;
+      });
+    }
+
+    function saveUser(event) {
+      event.preventDefault();
+      
+      const id = document.getElementById('userId').value;
+      const name = document.getElementById('userName').value;
+      const email = document.getElementById('userEmail').value;
+      const team = document.getElementById('userTeam').value;
+      const role = document.getElementById('userRole').value;
+      
+      if (id) {
+        // Editar usuario existente
+        const userIndex = users.findIndex(u => u.id == id);
+        users[userIndex] = { ...users[userIndex], name, email, team, role };
+      } else {
+        // Agregar nuevo usuario
+        const newUser = {
+          id: Math.max(...users.map(u => u.id)) + 1,
+          name,
+          email,
+          password: 'user123', // Contraseña por defecto
+          team,
+          role
+        };
+        users.push(newUser);
+      }
+      
+      updateUsersTable();
+      loadUsers();
+      clearUserForm();
+    }
+
+    function editUser(id) {
+      const user = users.find(u => u.id === id);
+      document.getElementById('userId').value = user.id;
+      document.getElementById('userName').value = user.name;
+      document.getElementById('userEmail').value = user.email;
+      document.getElementById('userTeam').value = user.team;
+      document.getElementById('userRole').value = user.role;
+    }
+
+    function deleteUser(id) {
+      if (confirm('¿Estás seguro de eliminar este usuario?')) {
+        users = users.filter(u => u.id !== id);
+        updateUsersTable();
+        loadUsers();
+      }
+    }
+
+    function clearUserForm() {
+      document.getElementById('userForm').reset();
+      document.getElementById('userId').value = '';
+    }
+
+    function showAddUserModal() {
+      clearUserForm();
+    }
+
+    // Gestión de equipos
+    function updateTeamsTable() {
+      const tbody = document.getElementById('teamsBody');
+      tbody.innerHTML = '';
+      
+      teams.forEach(team => {
+        const teamUsers = users.filter(u => u.team === team.name);
+        const teamPoints = activities
+          .filter(a => teamUsers.some(u => u.id === a.userId))
+          .reduce((sum, a) => sum + a.points, 0);
+        
+        const row = tbody.insertRow();
+        row.innerHTML = `
+          <td>${team.name}</td>
+          <td>${team.description}</td>
+          <td>${teamUsers.length}</td>
+          <td>${teamPoints}</td>
+          <td>
+            <button class="btn ghost" onclick="editTeam(${team.id})">Editar</button>
+            <button class="btn danger" onclick="deleteTeam(${team.id})">Eliminar</button>
+          </td>
+        `;
+      });
+    }
+
+    function saveTeam(event) {
+      event.preventDefault();
+      
+      const id = document.getElementById('teamId').value;
+      const name = document.getElementById('teamName').value;
+      const description = document.getElementById('teamDescription').value;
+      
+      if (id) {
+        // Editar equipo existente
+        const teamIndex = teams.findIndex(t => t.id == id);
+        teams[teamIndex] = { ...teams[teamIndex], name, description };
+      } else {
+        // Agregar nuevo equipo
+        const newTeam = {
+          id: Math.max(...teams.map(t => t.id)) + 1,
+          name,
+          description
+        };
+        teams.push(newTeam);
+      }
+      
+      updateTeamsTable();
+      loadTeams();
+      clearTeamForm();
+    }
+
+    function editTeam(id) {
+      const team = teams.find(t => t.id === id);
+      document.getElementById('teamId').value = team.id;
+      document.getElementById('teamName').value = team.name;
+      document.getElementById('teamDescription').value = team.description;
+    }
+
+    function deleteTeam(id) {
+      if (confirm('¿Estás seguro de eliminar este equipo?')) {
+        teams = teams.filter(t => t.id !== id);
+        updateTeamsTable();
+        loadTeams();
+      }
+    }
+
+    function clearTeamForm() {
+      document.getElementById('teamForm').reset();
+      document.getElementById('teamId').value = '';
+    }
+
+    function showAddTeamModal() {
+      clearTeamForm();
+    }
+
+    // Exportar datos
+    function exportToExcel(type) {
+      let data = [];
+      let filename = '';
+      
+      if (type === 'ranking') {
+        const ranking = calculateRanking();
+        data = ranking.map((user, index) => ({
+          'Posición': index + 1,
+          'Nombre': user.name,
+          'Equipo': user.team,
+          'Puntos': user.points,
+          'Actividades': user.activities
+        }));
+        filename = 'ranking_puntuacion.xlsx';
+      } else if (type === 'history') {
+        data = activities.map(activity => {
+          const user = users.find(u => u.id === activity.userId);
+          return {
+            'Fecha': activity.date,
+            'Hora': activity.time,
+            'Usuario': user.name,
+            'Equipo': activity.team,
+            'Actividad': activityNames[activity.type],
+            'Puntos': activity.points,
+            'Evidencia': activity.evidence,
+            'Notas': activity.notes
+          };
+        });
+        filename = 'historial_actividades.xlsx';
+      }
+      
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Datos');
+      XLSX.writeFile(wb, filename);
+    }
+
+    function exportToPDF(type) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      let data = [];
+      let title = '';
+      
+      if (type === 'ranking') {
+        const ranking = calculateRanking();
+        data = ranking.map((user, index) => [
+          index + 1,
+          user.name,
+          user.team,
+          user.points,
+          user.activities
+        ]);
+        title = 'Ranking de Puntuación';
+        doc.autoTable({
+          head: [['Posición', 'Nombre', 'Equipo', 'Puntos', 'Actividades']],
+          body: data
+        });
+      } else if (type === 'history') {
+        data = activities.map(activity => {
+          const user = users.find(u => u.id === activity.userId);
+          return [
+            activity.date,
+            activity.time,
+            user.name,
+            activity.team,
+            activityNames[activity.type],
+            activity.points
+          ];
+        });
+        title = 'Historial de Actividades';
+        doc.autoTable({
+          head: [['Fecha', 'Hora', 'Usuario', 'Equipo', 'Actividad', 'Puntos']],
+          body: data
+        });
+      }
+      
+      doc.save(`${title.toLowerCase().replace(/\s/g, '_')}.pdf`);
+    }
+  </script>
+</body>
+</html>

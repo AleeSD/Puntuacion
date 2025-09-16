@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar actividad{% endblock %}
+
+{% block content %}
+<div class="card" style="grid-column:span 6">
+  <div class="body">
+    <h3>Eliminar actividad</h3>
+    <p>¿Seguro que deseas eliminar la actividad <strong>{{ activity.activity_type.name }}</strong> del usuario <strong>{{ activity.user.name }}</strong> del día {{ activity.date }}?</p>
+    <form method="post">
+      {% csrf_token %}
+      <button class="btn danger" type="submit">Eliminar</button>
+      <a class="btn" href="/activities/">Cancelar</a>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+
