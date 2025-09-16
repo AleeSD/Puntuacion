@@ -12,3 +12,4 @@ class ActivityAdmin(admin.ModelAdmin):
     list_display = ('activity_type', 'user', 'date', 'evidence')
     list_filter = ('activity_type', 'date')
     search_fields = ('user__name', 'activity_type__name')
+    
